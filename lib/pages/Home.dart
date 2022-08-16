@@ -1,6 +1,8 @@
 import 'package:card_swiper/card_swiper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_jd/config/Config.dart';
+import 'package:flutter_jd/pages/model/ProductModel.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -16,21 +18,36 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   @override
   void initState() {
-    _getSwiperData();
     super.initState();
+    _getSwiperData(); // 轮播图
+    _getHotProductData(); // 猜你喜欢
   }
 
-  List<Result> _swiperList = [];
+  List<FocusItemModel> _swiperList = [];
 
+  // 获取轮播图数据
   _getSwiperData() async {
-    var url = Uri.https('jdmall.itying.com', 'api/focus');
+    var url = Uri.https(Config.admin, 'api/focus');
     var res = await http.get(url);
     var focusList = FocusModel.fromJson(json.decode(res.body));
     setState(() {
-      _swiperList = focusList.result as List<Result>;
+      _swiperList = focusList.result!;
     });
   }
 
+  List<ProductItemModel> _hotProductList = [];
+
+  // 获取猜你喜欢数据
+  _getHotProductData() async {
+    var url = Uri.https(Config.admin, 'api/plist', {'is_hot': '1'});
+    var res = await http.get(url);
+    var productList = ProductModel.fromJson(json.decode(res.body));
+    setState(() {
+      _hotProductList = productList.result!;
+    });
+  }
+
+  // 轮播图
   Widget swiperWidget() {
     if (_swiperList.isNotEmpty) {
       return AspectRatio(
@@ -40,14 +57,18 @@ class _HomeState extends State<Home> {
             // 将url中的反斜杠转换为斜杠
             String? pic = _swiperList[index].pic;
             pic = pic?.replaceAll('\\', '/');
+            pic = '${Config.baseUrl}/$pic';
             return Image.network(
-              'https://jdmall.itying.com/$pic',
+              pic,
               fit: BoxFit.cover,
             );
           },
           itemCount: _swiperList.length,
           pagination: const SwiperPagination(),
           autoplay: true,
+          onTap: (index) {
+            print('$index');
+          },
         ),
       );
     } else {
@@ -82,77 +103,173 @@ class _HomeState extends State<Home> {
     );
   }
 
-  // 热门商品
+  // 猜你喜欢
   Widget hotProductListWidget() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-      height: ScreenUtil().setHeight(150),
-      child: ListView.builder(
-        itemBuilder: ((context, index) => Column(
+    if (_hotProductList.isNotEmpty) {
+      return Container(
+        padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+        height: ScreenUtil().setHeight(150),
+        child: ListView.builder(
+          itemBuilder: ((context, index) {
+            String sPic = _hotProductList[index].sPic!;
+            sPic = sPic.replaceAll('\\', '/');
+            sPic = '${Config.baseUrl}/$sPic';
+            return Column(
               children: [
                 Padding(
                   padding: EdgeInsets.only(right: ScreenUtil().setWidth(10)),
                   child: Image.network(
-                    'https://img2.baidu.com/it/u=1529021379,1624541816&fm=253&fmt=auto&app=138&f=JPEG?w=200&h=200',
+                    sPic,
                     fit: BoxFit.cover,
                     width: ScreenUtil().setWidth(100),
                   ),
                 ),
-                Text('第$index条')
+                Container(
+                  alignment: Alignment.center,
+                  padding: EdgeInsets.only(top: ScreenUtil().setWidth(10)),
+                  height: ScreenUtil().setHeight(40),
+                  child: Text(
+                    '￥${_hotProductList[index].price}',
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                )
               ],
-            )),
-        scrollDirection: Axis.horizontal,
-        itemCount: 20,
-      ),
-    );
+            );
+          }),
+          scrollDirection: Axis.horizontal,
+          itemCount: _hotProductList.length,
+        ),
+      );
+    } else {
+      return Container(
+        padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+        height: ScreenUtil().setHeight(150),
+        child: ListView.builder(
+          itemBuilder: ((context, index) => Column(
+                children: [
+                  Padding(
+                    padding: EdgeInsets.only(right: ScreenUtil().setWidth(10)),
+                    child: Image.network(
+                      'https://img2.baidu.com/it/u=1529021379,1624541816&fm=253&fmt=auto&app=138&f=JPEG?w=200&h=200',
+                      fit: BoxFit.cover,
+                      width: ScreenUtil().setWidth(100),
+                    ),
+                  ),
+                  Text('第$index条')
+                ],
+              )),
+          scrollDirection: Axis.horizontal,
+          itemCount: 20,
+        ),
+      );
+    }
   }
 
-  Widget recProductItemWidget() {
-    return Container(
-      decoration:
-          BoxDecoration(border: Border.all(color: Colors.black12, width: 1)),
-      width: (ScreenUtil().screenWidth - 30) / 2,
-      padding: const EdgeInsets.all(5),
-      child: Column(children: [
-        Image.network(
-          'https://www.mms591.com/www.mms591.com-photo/2013041016/1-1304101A102.jpg',
-          fit: BoxFit.cover,
-          height: ScreenUtil().setHeight(280),
-          width: double.infinity,
-        ),
-        Container(
-          padding: const EdgeInsets.all(5),
-          width: double.infinity,
-          child: const Text(
-            '狐属（学名：Vulpes）：体长为45-90厘米，尾长25-60厘米，体重2-10千克，最大的超过15千克，雌兽体形比雄兽略小。体型中等、匀称，四肢修长，趾行性，利于快速奔跑。头腭尖形，颜面部长，鼻端突出，耳尖且直立，嗅觉灵敏，听觉发达。犬齿及裂齿发达；上臼齿具明显齿尖，下臼齿内侧具一小齿尖及后跟尖；臼齿齿冠直径大于外侧门齿高度；齿式为。毛粗而长，一般不具花纹。爪粗而钝，略能伸缩。尾多毛，一般较发达。',
-            maxLines: 2,
-            style: TextStyle(color: Colors.black87),
-            overflow: TextOverflow.ellipsis,
+  // 推荐商品详情
+  List<Widget> _recProductItemListWidget() {
+    List<Widget> list = [];
+    for (var i = 0; i < _hotProductList.length; i++) {
+      ProductItemModel product = _hotProductList[i];
+      String pic = product.pic!.replaceAll('\\', '/');
+      pic = '${Config.baseUrl}/$pic';
+      list.add(Container(
+        decoration:
+            BoxDecoration(border: Border.all(color: Colors.black12, width: 1)),
+        width: (ScreenUtil().screenWidth - 30) / 2,
+        padding: const EdgeInsets.all(5),
+        child: Column(children: [
+          Image.network(
+            pic,
+            fit: BoxFit.cover,
+            height: ScreenUtil().setHeight(280),
+            width: double.infinity,
           ),
-        ),
-        Stack(
-          children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '￥183.3',
-                style: TextStyle(
-                    color: Colors.red, fontSize: ScreenUtil().setSp(30)),
+          Container(
+            height: ScreenUtil().setHeight(80),
+            padding: const EdgeInsets.all(5),
+            width: double.infinity,
+            child: Text(
+              product.title!,
+              maxLines: 2,
+              style: const TextStyle(color: Colors.black87),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Stack(
+            children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '￥${product.price}',
+                  style: TextStyle(
+                      color: Colors.red, fontSize: ScreenUtil().setSp(30)),
+                ),
+              ),
+              Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    '￥${product.oldPrice}',
+                    style: TextStyle(
+                        color: Colors.black38,
+                        fontSize: ScreenUtil().setSp(25),
+                        decoration: TextDecoration.lineThrough),
+                  )),
+            ],
+          ),
+        ]),
+      ));
+    }
+    if (_hotProductList.isNotEmpty) {
+      return list;
+    } else {
+      return [
+        Container(
+          decoration: BoxDecoration(
+              border: Border.all(color: Colors.black12, width: 1)),
+          width: (ScreenUtil().screenWidth - 30) / 2,
+          padding: const EdgeInsets.all(5),
+          child: Column(children: [
+            Image.network(
+              'https://img1.baidu.com/it/u=2142811971,206741594&fm=253&app=138&size=w931&n=0&f=JPEG&fmt=auto?sec=1660755600&t=6e874d7fadf5e141ab80cabbdd10d268',
+              fit: BoxFit.cover,
+              height: ScreenUtil().setHeight(280),
+              width: double.infinity,
+            ),
+            Container(
+              padding: const EdgeInsets.all(5),
+              width: double.infinity,
+              child: const Text(
+                '加载中...',
+                maxLines: 2,
+                style: TextStyle(color: Colors.black87),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-            Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  '￥208.3',
-                  style: TextStyle(
-                      color: Colors.black38,
-                      fontSize: ScreenUtil().setSp(25),
-                      decoration: TextDecoration.lineThrough),
-                )),
-          ],
+            Stack(
+              children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    '￥0.00',
+                    style: TextStyle(
+                        color: Colors.red, fontSize: ScreenUtil().setSp(30)),
+                  ),
+                ),
+                Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      '￥0.00',
+                      style: TextStyle(
+                          color: Colors.black38,
+                          fontSize: ScreenUtil().setSp(25),
+                          decoration: TextDecoration.lineThrough),
+                    )),
+              ],
+            )
+          ]),
         )
-      ]),
-    );
+      ];
+    }
   }
 
   // 推荐商品
@@ -162,13 +279,7 @@ class _HomeState extends State<Home> {
       child: Wrap(
         runSpacing: 10,
         spacing: 10,
-        children: [
-          recProductItemWidget(),
-          recProductItemWidget(),
-          recProductItemWidget(),
-          recProductItemWidget(),
-          recProductItemWidget(),
-        ],
+        children: _recProductItemListWidget(),
       ),
     );
   }

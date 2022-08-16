@@ -1,6 +1,10 @@
 import 'package:card_swiper/card_swiper.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import './model/FocusModel.dart';
 
 class Home extends StatefulWidget {
   const Home({Key? key}) : super(key: key);
@@ -10,30 +14,55 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  final List<Widget> _swiperList = [
-    Image.network(
-      'https://gimg2.baidu.com/image_search/src=http%3A%2F%2Fimg-pre.ivsky.com%2Fimg%2Ftupian%2Fpre%2F201610%2F31%2Fyewai_huli-011.jpg&refer=http%3A%2F%2Fimg-pre.ivsky.com&app=2002&size=f9999,10000&q=a80&n=0&g=0n&fmt=auto?sec=1663138804&t=3255b0d361c8fab1bfbecac666d2745b',
-      fit: BoxFit.cover,
-    ),
-    Image.network(
-        'https://gimg2.baidu.com/image_search/src=http%3A%2F%2Fimg9.51tietu.net%2Fpic%2F2019-091223%2Fmc1nhpj02jtmc1nhpj02jt.jpg&refer=http%3A%2F%2Fimg9.51tietu.net&app=2002&size=f9999,10000&q=a80&n=0&g=0n&fmt=auto?sec=1663138878&t=b1ef5bdec9e9cbf61ae14e873da3bc4d',
-        fit: BoxFit.cover),
-    Image.network(
-        'https://img2.baidu.com/it/u=4208510731,1764525864&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=333',
-        fit: BoxFit.cover)
-  ];
+  @override
+  void initState() {
+    _getSwiperData();
+    super.initState();
+  }
+
+  List<Result> _swiperList = [];
+
+  _getSwiperData() async {
+    var url = Uri.https('jdmall.itying.com', 'api/focus');
+    var res = await http.get(url);
+    var focusList = FocusModel.fromJson(json.decode(res.body));
+    setState(() {
+      _swiperList = focusList.result as List<Result>;
+    });
+  }
+
   Widget swiperWidget() {
-    return AspectRatio(
-      aspectRatio: 16 / 9,
-      child: Swiper(
-        itemBuilder: (context, index) {
-          return _swiperList[index];
-        },
-        itemCount: 3,
-        pagination: const SwiperPagination(),
-        autoplay: true,
-      ),
-    );
+    if (_swiperList.isNotEmpty) {
+      return AspectRatio(
+        aspectRatio: 16 / 9,
+        child: Swiper(
+          itemBuilder: (context, index) {
+            // 将url中的反斜杠转换为斜杠
+            String? pic = _swiperList[index].pic;
+            pic = pic?.replaceAll('\\', '/');
+            return Image.network(
+              'https://jdmall.itying.com/$pic',
+              fit: BoxFit.cover,
+            );
+          },
+          itemCount: _swiperList.length,
+          pagination: const SwiperPagination(),
+          autoplay: true,
+        ),
+      );
+    } else {
+      return AspectRatio(
+        aspectRatio: 16 / 9,
+        child: Swiper(
+          itemBuilder: (context, index) {
+            return const CupertinoActivityIndicator();
+          },
+          itemCount: 1,
+          pagination: const SwiperPagination(),
+          autoplay: true,
+        ),
+      );
+    }
   }
 
   Widget titleWidget(value) {

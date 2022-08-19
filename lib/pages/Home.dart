@@ -19,8 +19,10 @@ class _HomeState extends State<Home> {
   @override
   void initState() {
     super.initState();
-    _getSwiperData(); // 轮播图
-    _getHotProductData(); // 猜你喜欢
+    if (mounted) {
+      _getSwiperData(); // 轮播图
+      _getHotProductData(); // 猜你喜欢
+    }
   }
 
   List<FocusItemModel> _swiperList = [];
@@ -30,9 +32,11 @@ class _HomeState extends State<Home> {
     var url = Uri.https(Config.admin, 'api/focus');
     var res = await http.get(url);
     var focusList = FocusModel.fromJson(json.decode(res.body));
-    setState(() {
-      _swiperList = focusList.result!;
-    });
+    if (mounted) {
+      setState(() {
+        _swiperList = focusList.result!;
+      });
+    }
   }
 
   List<ProductItemModel> _hotProductList = [];
@@ -42,9 +46,11 @@ class _HomeState extends State<Home> {
     var url = Uri.https(Config.admin, 'api/plist', {'is_hot': '1'});
     var res = await http.get(url);
     var productList = ProductModel.fromJson(json.decode(res.body));
-    setState(() {
-      _hotProductList = productList.result!;
-    });
+    if (mounted) {
+      setState(() {
+        _hotProductList = productList.result!;
+      });
+    }
   }
 
   // 轮播图

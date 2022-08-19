@@ -1,5 +1,9 @@
+import 'dart:convert';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_jd/config/Config.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:http/http.dart' as http;
 
 class Category extends StatefulWidget {
   const Category({Key? key}) : super(key: key);
@@ -9,8 +13,95 @@ class Category extends StatefulWidget {
 }
 
 class _CategoryState extends State<Category> {
+  @override
+  void initState() {
+    super.initState();
+    _getLeft(isInit: true);
+  }
+
   int _selectIndex = 0;
-  
+  List _leftList = [];
+  List _rightList = [];
+  bool _rightLoading = true;
+
+  _getLeft({bool isInit = false}) async {
+    var url = Uri.https(Config.admin, 'api/pcate');
+    var res = await http.get(url);
+    var list = json.decode(res.body)['result'];
+    if (mounted) {
+      setState(() {
+        _leftList = list;
+        if (isInit) {
+          _getRight(_leftList[0]['_id']);
+        }
+      });
+    }
+  }
+
+  _getRight(String id) async {
+    if (mounted) {
+      setState(() {
+        _rightLoading = true;
+      });
+    }
+    var url = Uri.https(Config.admin, 'api/pcate', {'pid': id});
+    var res = await http.get(url);
+    var list = json.decode(res.body)['result'];
+    if (mounted) {
+      setState(() {
+        _rightList = list;
+        _rightLoading = false;
+      });
+    }
+  }
+
+  Widget getRightWidget() {
+    if (_rightLoading) {
+      return const CupertinoActivityIndicator();
+    } else {
+      return Container(
+          color: const Color.fromRGBO(240, 246, 246, 0.9),
+          height: double.infinity,
+          child: GridView.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                childAspectRatio: 1 / 1.2,
+                crossAxisSpacing: ScreenUtil().setWidth(10),
+                mainAxisSpacing: ScreenUtil().setWidth(10),
+              ),
+              itemCount: _rightList.length,
+              itemBuilder: ((context, index) {
+                // 将url中的反斜杠转换为斜杠
+                String? pic = _rightList[index]['pic'];
+                pic = pic?.replaceAll('\\', '/');
+                pic = '${Config.baseUrl}/$pic';
+                return Container(
+                  padding: EdgeInsets.all(ScreenUtil().setWidth(10)),
+                  child: Column(
+                    children: [
+                      AspectRatio(
+                        aspectRatio: 1 / 1,
+                        child: Image.network(
+                          pic,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Expanded(
+                          flex: 1,
+                          child: Container(
+                            width: double.infinity,
+                            color: Colors.white,
+                            child: Text(
+                              _rightList[index]['title'],
+                              textAlign: TextAlign.center,
+                            ),
+                          ))
+                    ],
+                  ),
+                );
+              })));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,72 +112,42 @@ class _CategoryState extends State<Category> {
             height: double.infinity,
             child: ListView.builder(
               itemBuilder: ((context, index) {
+                String title = _leftList[index]['title'];
+
                 return Column(
                   children: [
                     InkWell(
                         onTap: () {
-                          setState(() {
-                            _selectIndex = index;
-                          });
+                          if (mounted) {
+                            setState(() {
+                              _selectIndex = index;
+                            });
+                          }
+                          _getRight(_leftList[_selectIndex]['_id']);
                         },
                         child: Container(
                             width: double.infinity,
-                            height: ScreenUtil().setHeight(50),
+                            height: ScreenUtil().setHeight(84),
+                            color: _selectIndex == index
+                                ? const Color.fromRGBO(240, 246, 246, 0.9)
+                                : Colors.white,
+                            padding:
+                                EdgeInsets.only(top: ScreenUtil().setWidth(20)),
                             child: Center(
                               child: Text(
-                                'is $index',
+                                title,
                                 textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: _selectIndex == index
-                                      ? Colors.pink
-                                      : Colors.black87,
-                                ),
                               ),
                             ))),
-                    Divider(
-                      color:
-                          _selectIndex == index ? Colors.pink : Colors.black87,
+                    const Divider(
+                      height: 1,
                     )
                   ],
                 );
               }),
-              itemCount: 18,
+              itemCount: _leftList.length,
             )),
-        Expanded(
-          flex: 1,
-          child: SizedBox(
-              height: double.infinity,
-              child: GridView.builder(
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    childAspectRatio: 1 / 1.2,
-                    crossAxisSpacing: ScreenUtil().setWidth(10),
-                    mainAxisSpacing: ScreenUtil().setWidth(10),
-                  ),
-                  itemBuilder: ((context, index) {
-                    return Container(
-                      padding: EdgeInsets.all(ScreenUtil().setWidth(10)),
-                      child: Column(
-                        children: [
-                          AspectRatio(
-                            aspectRatio: 1 / 1,
-                            child: Image.network(
-                              'https://img0.baidu.com/it/u=3085690425,3847123260&fm=253&app=138&size=w931&n=0&f=JPEG&fmt=auto?sec=1660842000&t=5c5505813673d91db9fda6df725d3aee',
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          Expanded(
-                              flex: 1,
-                              child: Container(
-                                width: double.infinity,
-                                color: Colors.pink[200],
-                                child: Text('111'),
-                              ))
-                        ],
-                      ),
-                    );
-                  }))),
-        ),
+        Expanded(flex: 1, child: getRightWidget()),
       ],
     );
   }

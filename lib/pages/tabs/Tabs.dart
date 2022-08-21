@@ -12,7 +12,15 @@ class Tabs extends StatefulWidget {
 }
 
 class _TabsState extends State<Tabs> {
+  PageController _pageController = PageController();
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: _currentIndex);
+  }
+
   final List<Widget> _pageList = const [Home(), Category(), Cart(), Mine()];
 
   @override
@@ -23,12 +31,21 @@ class _TabsState extends State<Tabs> {
         centerTitle: true,
         backgroundColor: Colors.red,
       ),
-      body: _pageList[_currentIndex],
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: ((value) {
+          setState(() {
+            _currentIndex = value;
+          });
+        }),
+        children: _pageList,
+      ),
       bottomNavigationBar: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: ((index) {
             setState(() {
               _currentIndex = index;
+              _pageController.jumpToPage(_currentIndex);
             });
           }),
           fixedColor: Colors.red,

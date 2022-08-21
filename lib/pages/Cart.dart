@@ -8,14 +8,20 @@ class Cart extends StatefulWidget {
 }
 
 class _CartState extends State<Cart> {
-  
-
   @override
   Widget build(BuildContext context) {
     return SizedBox(
         child: ElevatedButton(
-      onPressed: (){},
-      child: const Text('test'),
+      onPressed: () {
+        showDialog(
+            context: context,
+            builder: ((context) {
+              return Container(
+                child: Text('!!!'),
+              );
+            }));
+      },
+      child: const Text('偷着乐.'),
     ));
   }
 }

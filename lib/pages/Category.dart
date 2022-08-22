@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_jd/config/Config.dart';
+import 'package:flutter_jd/pages/ProductList.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
 
@@ -82,7 +83,13 @@ class _CategoryState extends State<Category>
                 String? pic = _rightList[index]['pic'];
                 pic = pic?.replaceAll('\\', '/');
                 pic = '${Config.baseUrl}/$pic';
-                return Container(
+                return InkWell(
+                  onTap: () {
+                    // 跳转到商品列表，传递商品分类id
+                    Navigator.of(context).push(MaterialPageRoute(
+                        builder: ((context) =>
+                            ProductList(id: _rightList[index]['_id']))));
+                  },
                   child: Column(
                     children: [
                       AspectRatio(
@@ -113,7 +120,7 @@ class _CategoryState extends State<Category>
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Container(
+        SizedBox(
             width: ScreenUtil().setWidth(200),
             height: double.infinity,
             child: ListView.builder(

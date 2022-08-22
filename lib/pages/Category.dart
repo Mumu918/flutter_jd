@@ -60,6 +60,9 @@ class _CategoryState extends State<Category> {
       return const CupertinoActivityIndicator();
     } else {
       return Container(
+          padding: EdgeInsets.all(
+            ScreenUtil().setWidth(10),
+          ),
           color: const Color.fromRGBO(240, 246, 246, 0.9),
           height: double.infinity,
           child: GridView.builder(
@@ -76,7 +79,6 @@ class _CategoryState extends State<Category> {
                 pic = pic?.replaceAll('\\', '/');
                 pic = '${Config.baseUrl}/$pic';
                 return Container(
-                  padding: EdgeInsets.all(ScreenUtil().setWidth(10)),
                   child: Column(
                     children: [
                       AspectRatio(

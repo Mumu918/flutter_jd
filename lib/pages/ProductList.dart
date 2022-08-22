@@ -25,8 +25,7 @@ class _ProductListState extends State<ProductList>
   Widget _tagWidget(String text) {
     return Container(
       alignment: Alignment.center,
-      padding: const EdgeInsets.all(2),
-      width: 40,
+      padding: const EdgeInsets.fromLTRB(10, 2, 10, 2),
       decoration: BoxDecoration(
           color: Colors.grey[300],
           borderRadius: const BorderRadius.all(Radius.circular(20))),
@@ -73,7 +72,7 @@ class _ProductListState extends State<ProductList>
                           const SizedBox(
                             width: 10,
                           ),
-                          _tagWidget('126')
+                          _tagWidget('126GB')
                         ],
                       ),
                       const Text(
@@ -108,7 +107,11 @@ class _ProductListState extends State<ProductList>
     return Scaffold(
         appBar: AppBar(
           title: const Text('商品列表'),
+          centerTitle: true,
+          backgroundColor: Colors.red,
           bottom: TabBar(
+            indicatorColor: Colors.white,
+            labelStyle: const TextStyle(fontSize: 16),
             tabs: const [
               Tab(
                 text: '综合',

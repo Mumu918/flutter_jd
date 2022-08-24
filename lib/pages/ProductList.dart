@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_jd/config/Config.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:flutter/cupertino.dart';
 
 class ProductList extends StatefulWidget {
   final String id;
@@ -12,6 +16,44 @@ class _ProductListState extends State<ProductList>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  final List _productList = [];
+
+  int _page = 1;
+
+  bool _flag = true;
+
+  final ScrollController _scrollController = ScrollController();
+
+  final int _pageSize = 8;
+
+  bool _isBottom = false;
+
+  _getProductListData() async {
+    setState(() {
+      _flag = false;
+    });
+
+    var url = Uri.https(Config.admin, 'api/plist', {
+      'cid': widget.id,
+      'page': _page.toString(),
+      'pageSize': _pageSize.toString()
+    });
+    var res = await http.get(url);
+    var list = json.decode(res.body)['result'];
+    _page++;
+
+    if (mounted) {
+      setState(() {
+        _productList.addAll(list);
+        _flag = true;
+        if (list.length < _pageSize) {
+          _isBottom = true;
+          print(_isBottom);
+        }
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -20,6 +62,16 @@ class _ProductListState extends State<ProductList>
       length: 3,
       vsync: this,
     );
+    _getProductListData();
+
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >
+          _scrollController.position.maxScrollExtent - 20) {
+        if (_flag && !_isBottom) {
+          _getProductListData();
+        }
+      }
+    });
   }
 
   Widget _tagWidget(String text) {
@@ -37,74 +89,108 @@ class _ProductListState extends State<ProductList>
     );
   }
 
-  Widget _getProductListItemWidget() {
-    return Container(
-        // padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
-        decoration: const BoxDecoration(
-            border:
-                Border(bottom: BorderSide(width: 1, color: Colors.black45))),
-        child: Row(
+  Widget _getProductListItemWidget(int index) {
+    String? pic = _productList[index]['pic'];
+    pic = pic?.replaceAll('\\', '/');
+    pic = '${Config.baseUrl}/$pic';
+
+    return SizedBox(
+        width: double.infinity,
+        child: Column(
           children: [
-            Image.network(
-              'https://gimg2.baidu.com/image_search/src=http%3A%2F%2Fwww.chinanews.com.cn%2Fcul%2F2010%2F09-20%2FU136P4T8D2546795F107DT20100920181537.jpg&refer=http%3A%2F%2Fwww.chinanews.com.cn&app=2002&size=f9999,10000&q=a80&n=0&g=0n&fmt=auto?sec=1663741804&t=272b01ab46812c10b380672cd73b05a4',
-              width: 80,
-              height: 80,
-              fit: BoxFit.cover,
-            ),
-            Expanded(
-                flex: 1,
-                child: Container(
-                  padding: EdgeInsets.fromLTRB(10, 0, 10, 0),
-                  height: 100,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '做奴隶虽然不幸，但并不可怕，因为知道挣扎，毕竟还有挣脱的希望；若是从奴隶生活中寻出美来，赞叹、陶醉，就是万劫不复的奴才了。',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      Row(
+            Row(
+              children: [
+                Image.network(
+                  pic,
+                  width: 80,
+                  height: 80,
+                  fit: BoxFit.cover,
+                ),
+                Expanded(
+                    flex: 1,
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                      height: 100,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _tagWidget('4g'),
-                          const SizedBox(
-                            width: 10,
+                          Text(
+                            '${_productList[index]['title']}',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
-                          _tagWidget('126GB')
+                          Row(
+                            children: [
+                              _tagWidget('4g'),
+                              const SizedBox(
+                                width: 10,
+                              ),
+                              _tagWidget('126GB')
+                            ],
+                          ),
+                          Text(
+                            '￥${_productList[index]['price']}',
+                            style: const TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.w500,
+                                fontSize: 18),
+                          )
                         ],
                       ),
-                      const Text(
-                        '￥990.45',
-                        style: TextStyle(
-                            color: Colors.red,
-                            fontWeight: FontWeight.w500,
-                            fontSize: 18),
-                      )
-                    ],
-                  ),
-                ))
+                    ))
+              ],
+            ),
+            const Divider(),
+            _moreWiget(index)
           ],
         ));
   }
 
+  Widget _moreWiget(int index) {
+    if (index == _productList.length - 1) {
+      if (_isBottom) {
+        return const SizedBox(
+          height: 20,
+          child: Text('完了'),
+        );
+      } else {
+        return const CupertinoActivityIndicator();
+      }
+    } else {
+      return const Text('');
+    }
+  }
+
   Widget _comprehensive() {
-    return SizedBox(
-        child: Padding(
-      padding: const EdgeInsets.all(10),
-      child: ListView.builder(
-        itemBuilder: ((context, index) {
-          return _getProductListItemWidget();
-        }),
-        itemCount: 10,
-      ),
-    ));
+    if (_productList.isEmpty) {
+      return const CupertinoActivityIndicator();
+    } else {
+      return Padding(
+        padding: const EdgeInsets.all(10),
+        child: ListView.builder(
+          itemBuilder: ((context, index) {
+            return _getProductListItemWidget(index);
+          }),
+          itemCount: _productList.length,
+          controller: _scrollController,
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        floatingActionButton: FloatingActionButton(
+          child: const Icon(Icons.arrow_upward_sharp),
+          onPressed: () {
+            _scrollController.animateTo(0,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeIn);
+          },
+        ),
         appBar: AppBar(
           title: const Text('商品列表'),
           centerTitle: true,
@@ -125,6 +211,25 @@ class _ProductListState extends State<ProductList>
             ],
             controller: _tabController,
           ),
+          leading: new IconButton(
+            tooltip: '返回上一页',
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              Navigator.of(context).pop();
+              //_nextPage(-1);
+            },
+          ),
+          actions: [
+            Builder(
+              builder: (context) => IconButton(
+                icon: const Icon(Icons.bento_rounded),
+                onPressed: () => Scaffold.of(context).openEndDrawer(),
+              ),
+            ),
+          ],
+        ),
+        endDrawer: const Drawer(
+          child: SizedBox(child: Text('事与愿违')),
         ),
         body: TabBarView(
           controller: _tabController,
